@@ -33,7 +33,7 @@ function App() {
           ACTIVE_LANGUAGE_META_KEY,
           LANGUAGES.JAPANESE,
         )
-        const storedView = await getMeta(ACTIVE_VIEW_META_KEY, VIEWS.BROWSE)
+        const storedView = await getMeta('activeView', 'browse')
         if (!isMounted) {
           return
         }
