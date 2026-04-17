@@ -5,7 +5,8 @@ export default function LanguageToggle({ activeLanguage, onChange }) {
   ]
 
   return (
-    <div className="flex w-full overflow-hidden rounded-full border border-red-700">
+    <div className="flex justify-center">
+      <div className="inline-flex rounded-full bg-pokedex-cream-dark/60 p-1">
       {options.map((option) => {
         const isActive = activeLanguage === option.value
         return (
@@ -13,17 +14,26 @@ export default function LanguageToggle({ activeLanguage, onChange }) {
             key={option.value}
             type="button"
             onClick={() => onChange(option.value)}
-            className={`w-1/2 px-4 py-2 text-base font-semibold transition-colors ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 font-display text-xs uppercase tracking-wider transition-colors ${
               isActive
-                ? 'bg-red-700 text-yellow-300'
-                : 'bg-white text-red-700 hover:bg-red-50'
+                ? 'bg-pokedex-charcoal text-pokedex-cream'
+                : 'text-pokedex-charcoal/60'
             }`}
             aria-pressed={isActive}
           >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${
+                isActive
+                  ? 'bg-pokedex-led shadow-[0_0_4px_rgba(74,222,128,0.8)]'
+                  : 'bg-pokedex-charcoal/20'
+              }`}
+              aria-hidden="true"
+            />
             {option.label}
           </button>
         )
       })}
+      </div>
     </div>
   )
 }

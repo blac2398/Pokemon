@@ -270,29 +270,31 @@ function App() {
       <AppHeader onOpenSettings={() => setSettingsOpen(true)} />
 
       <div className="mx-auto max-w-[720px] px-4 py-4 pb-24">
-        <div className="mb-4 flex overflow-hidden rounded-lg border border-red-700 bg-white">
-          <button
-            type="button"
-            className={`w-1/2 py-2 text-sm font-bold tracking-wide ${
-              activeView === VIEWS.BROWSE
-                ? 'bg-red-700 text-yellow-300'
-                : 'text-red-700 hover:bg-red-50'
-            }`}
-            onClick={() => setActiveView(VIEWS.BROWSE)}
-          >
-            Browse
-          </button>
-          <button
-            type="button"
-            className={`w-1/2 py-2 text-sm font-bold tracking-wide ${
-              activeView === VIEWS.SCAN
-                ? 'bg-red-700 text-yellow-300'
-                : 'text-red-700 hover:bg-red-50'
-            }`}
-            onClick={() => setActiveView(VIEWS.SCAN)}
-          >
-            Scan
-          </button>
+        <div className="my-4 flex justify-center">
+          <div className="inline-flex rounded-full bg-pokedex-cream-dark/60 p-1">
+            <button
+              type="button"
+              className={`rounded-full px-6 py-2 font-display text-sm uppercase tracking-wider transition-colors ${
+                activeView === VIEWS.BROWSE
+                  ? 'bg-pokedex-red text-pokedex-cream shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.15)]'
+                  : 'text-pokedex-charcoal/60 hover:text-pokedex-charcoal'
+              }`}
+              onClick={() => setActiveView(VIEWS.BROWSE)}
+            >
+              Browse
+            </button>
+            <button
+              type="button"
+              className={`rounded-full px-6 py-2 font-display text-sm uppercase tracking-wider transition-colors ${
+                activeView === VIEWS.SCAN
+                  ? 'bg-pokedex-red text-pokedex-cream shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_2px_4px_rgba(0,0,0,0.15)]'
+                  : 'text-pokedex-charcoal/60 hover:text-pokedex-charcoal'
+              }`}
+              onClick={() => setActiveView(VIEWS.SCAN)}
+            >
+              Scan
+            </button>
+          </div>
         </div>
 
         {activeView === VIEWS.BROWSE ? (

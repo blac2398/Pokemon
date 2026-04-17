@@ -11,7 +11,6 @@ function spriteUrl(dexNum) {
 export default function PokedexRow({ entry, isOwned, onToggle, onOpenDetail }) {
   const [imageFailed, setImageFailed] = useState(false)
   const dexLabel = formatDexNumber(entry.n)
-  const chevron = isOwned ? '›' : ''
 
   function handleClick() {
     if (isOwned) {
@@ -26,13 +25,15 @@ export default function PokedexRow({ entry, isOwned, onToggle, onOpenDetail }) {
     <button
       type="button"
       onClick={handleClick}
-      className={`flex w-full items-center gap-3 border-b border-gray-200 px-3 py-2 text-left transition-colors ${
-        isOwned ? 'bg-yellow-50 hover:bg-yellow-100' : 'bg-white hover:bg-gray-50'
+      className={`flex min-h-12 w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors active:scale-[0.99] active:transition-transform active:duration-75 ${
+        isOwned
+          ? 'border-pokedex-cream-dark/70 bg-pokedex-cream hover:bg-pokedex-cream-dark/20'
+          : 'border-pokedex-cream-dark/40 bg-white hover:bg-pokedex-cream-dark/10'
       }`}
     >
-      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded bg-gray-100">
+      <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-pokedex-cream-dark/20">
         {imageFailed ? (
-          <div className="flex h-full w-full items-center justify-center bg-gray-200 text-xs font-semibold text-gray-600">
+          <div className="flex h-full w-full items-center justify-center bg-pokedex-cream-dark/40 text-xs font-semibold text-pokedex-charcoal/70">
             {dexLabel}
           </div>
         ) : (
@@ -40,21 +41,41 @@ export default function PokedexRow({ entry, isOwned, onToggle, onOpenDetail }) {
             src={spriteUrl(entry.n)}
             alt={entry.name}
             loading="lazy"
-            className="h-14 w-14 object-contain"
+            className="h-full w-full object-contain"
             onError={() => setImageFailed(true)}
           />
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="font-mono text-xs text-gray-500">{dexLabel}</p>
-        <p className="truncate text-base text-gray-900">{entry.name}</p>
+        <p className="font-mono text-xs tracking-wide text-pokedex-lcd-dark/70">
+          {dexLabel}
+        </p>
+        <p className="truncate font-body text-base font-semibold text-pokedex-charcoal">
+          {entry.name}
+        </p>
       </div>
 
-      <div className="flex w-10 shrink-0 items-center justify-end gap-1 text-xl text-yellow-500">
-        <span>{isOwned ? '✓' : ''}</span>
-        <span className="text-gray-400">{chevron}</span>
-      </div>
+      {isOwned ? (
+        <div className="ml-2 flex shrink-0 items-center gap-2">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-pokedex-red">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              className="h-3.5 w-3.5 text-white"
+              aria-hidden="true"
+            >
+              <path d="M20 6 9 17l-5-5" />
+            </svg>
+          </span>
+          <span className="text-sm text-pokedex-charcoal/30" aria-hidden="true">
+            ›
+          </span>
+        </div>
+      ) : null}
     </button>
   )
 }

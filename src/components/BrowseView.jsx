@@ -36,6 +36,9 @@ export default function BrowseView({
   const [detailViewOpen, setDetailViewOpen] = useState(false)
   const [detailSlot, setDetailSlot] = useState(null)
   const [detailPokedex, setDetailPokedex] = useState(null)
+  const ownedCount = ownedDexNums.size
+  const ownedCountLabel = String(ownedCount).padStart(4, '0')
+  const ownedPercentage = Math.floor((ownedCount / 1025) * 100)
 
   useEffect(() => {
     let isMounted = true
@@ -203,35 +206,66 @@ export default function BrowseView({
   }
 
   return (
-    <section className="space-y-4">
-      <LanguageToggle
-        activeLanguage={activeLanguage}
-        onChange={onLanguageChange}
-      />
-
-      <div className="rounded-lg bg-white p-3 shadow-sm">
-        <p className="font-mono text-lg font-bold text-gray-900">
-          OWNED: {ownedDexNums.size} / 1025
-        </p>
+    <section className="mx-auto max-w-2xl space-y-4 p-4">
+      <div className="mb-4 flex justify-center">
+        <LanguageToggle
+          activeLanguage={activeLanguage}
+          onChange={onLanguageChange}
+        />
       </div>
 
-      <FilterBar
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
-      />
-
-      <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-        {filteredEntries.map((entry) => (
-          <PokedexRow
-            key={entry.n}
-            entry={entry}
-            isOwned={ownedDexNums.has(entry.n)}
-            onToggle={() => handleToggleOwnership(entry.n)}
-            onOpenDetail={handleOpenDetail}
+      <div className="mx-auto my-4 max-w-md rounded-md border-2 border-pokedex-lcd-dark/30 bg-pokedex-lcd px-5 py-3 shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)]">
+        <div className="flex items-end justify-between gap-4">
+          <p className="font-mono text-xs uppercase tracking-widest text-pokedex-lcd-dark/70">
+            OWNED
+          </p>
+          <div className="flex items-end justify-end gap-1 text-right">
+            <span className="font-mono text-2xl font-bold text-pokedex-lcd-dark">
+              {ownedCountLabel}
+            </span>
+            <span className="font-mono text-2xl text-pokedex-lcd-dark/50">/</span>
+            <span className="font-mono text-2xl text-pokedex-lcd-dark/80">
+              1025
+            </span>
+          </div>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-pokedex-lcd-dark/20">
+          <div
+            className="h-full bg-pokedex-lcd-dark transition-all duration-500 ease-out"
+            style={{ width: `${ownedPercentage}%` }}
+            aria-hidden="true"
           />
-        ))}
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <FilterBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+        />
+      </div>
+
+      <div className="space-y-2">
+        {filteredEntries.length > 0 ? (
+          filteredEntries.map((entry) => (
+            <PokedexRow
+              key={entry.n}
+              entry={entry}
+              isOwned={ownedDexNums.has(entry.n)}
+              onToggle={() => handleToggleOwnership(entry.n)}
+              onOpenDetail={handleOpenDetail}
+            />
+          ))
+        ) : (
+          <div className="py-16 text-center text-pokedex-charcoal/40">
+            <p className="text-2xl" aria-hidden="true">
+              🔍
+            </p>
+            <p className="mt-2 font-body text-sm">No Pokemon match your search</p>
+          </div>
+        )}
       </div>
 
       {detailViewOpen && detailPokedex ? (
