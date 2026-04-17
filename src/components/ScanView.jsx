@@ -33,7 +33,8 @@ function spriteUrlForDex(dexNum) {
 }
 
 export default function ScanView({ activeLanguage, onCollectionChanged }) {
-  const fileInputRef = useRef(null)
+  const captureInputRef = useRef(null)
+  const libraryInputRef = useRef(null)
   const [scanState, setScanState] = useState(SCAN_STATE.IDLE)
   const [errorMessage, setErrorMessage] = useState('')
   const [capturedPhoto, setCapturedPhoto] = useState('')
@@ -44,6 +45,7 @@ export default function ScanView({ activeLanguage, onCollectionChanged }) {
   const [searchQuery, setSearchQuery] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [identifyDotCount, setIdentifyDotCount] = useState(1)
 
   useEffect(() => {
     let mounted = true
@@ -67,8 +69,27 @@ export default function ScanView({ activeLanguage, onCollectionChanged }) {
     }
   }, [])
 
+  useEffect(() => {
+    if (scanState !== SCAN_STATE.IDENTIFYING) {
+      setIdentifyDotCount(1)
+      return
+    }
+
+    const intervalId = window.setInterval(() => {
+      setIdentifyDotCount((count) => (count >= 3 ? 1 : count + 1))
+    }, 400)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [scanState])
+
   function triggerCapture() {
-    fileInputRef.current?.click()
+    captureInputRef.current?.click()
+  }
+
+  function triggerLibraryPick() {
+    libraryInputRef.current?.click()
   }
 
   function resetToIdle() {
@@ -208,50 +229,89 @@ export default function ScanView({ activeLanguage, onCollectionChanged }) {
   }, [normalizedQuery, pokedex, confirmData])
 
   return (
-    <section className="rounded-xl border border-gray-700 bg-gray-900 p-4 text-white shadow-sm">
+    <section className="rounded-xl border border-pokedex-red-dark/50 bg-pokedex-cream-dark/50 p-5 text-pokedex-charcoal shadow-sm">
       <input
-        ref={fileInputRef}
+        ref={captureInputRef}
         type="file"
         accept="image/*"
         capture="environment"
         className="hidden"
         onChange={handleFileChange}
       />
+      <input
+        ref={libraryInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
       {scanState === SCAN_STATE.IDLE ? (
-        <div className="flex flex-col items-center gap-4 py-8">
-          <p className="text-sm text-gray-300">
-            Capture a Pokemon card in {activeLanguage.toUpperCase()} collection mode.
-          </p>
+        <div className="flex min-h-[460px] flex-col items-center justify-center gap-5 py-8 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full bg-pokedex-lcd px-3 py-1.5 font-mono text-[11px] uppercase tracking-widest text-pokedex-lcd-dark shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)]">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-pokedex-led shadow-[0_0_8px_rgba(74,222,128,0.8)]" />
+            <span>SCAN READY</span>
+          </div>
           <button
             type="button"
             onClick={triggerCapture}
-            className="rounded-full bg-blue-500 px-10 py-5 text-xl font-bold tracking-wide text-white shadow-lg transition hover:bg-blue-400"
+            className="flex h-32 w-32 items-center justify-center rounded-full ring-4 ring-pokedex-cream ring-offset-4 ring-offset-transparent shadow-lg transition-transform duration-100 active:scale-95"
+            style={{
+              background:
+                'radial-gradient(circle at 30% 30%, #d84a62, #9e1730)',
+              boxShadow:
+                'inset 0 -4px 8px rgba(0,0,0,0.25), inset 0 4px 4px rgba(255,255,255,0.15)',
+            }}
+            aria-label="Capture card"
           >
-            Capture Card
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-10 w-10 text-pokedex-cream"
+              aria-hidden="true"
+            >
+              <path d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z" />
+              <circle cx="12" cy="13" r="3.5" />
+            </svg>
           </button>
+          <p className="text-sm font-body text-pokedex-charcoal/70">Tap to capture a card</p>
+          <button
+            type="button"
+            onClick={triggerLibraryPick}
+            className="text-sm font-body text-pokedex-charcoal/60 underline decoration-pokedex-charcoal/30 underline-offset-4 transition hover:text-pokedex-charcoal"
+          >
+            or choose from library
+          </button>
+          <p className="text-xs font-mono uppercase tracking-wider text-pokedex-charcoal/50">
+            {activeLanguage.toUpperCase()} mode
+          </p>
         </div>
       ) : null}
 
       {scanState === SCAN_STATE.READING ? (
-        <div className="py-10 text-center">
-          <p className="text-base font-semibold">Preparing image...</p>
+        <div className="space-y-4 py-10 text-center">
+          <p className="inline-flex items-center rounded-md bg-pokedex-lcd px-3 py-2 font-mono text-sm uppercase tracking-widest text-pokedex-lcd-dark shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)]">
+            PREPARING IMAGE...
+          </p>
         </div>
       ) : null}
 
       {scanState === SCAN_STATE.IDENTIFYING ? (
-        <div className="space-y-4">
+        <div className="space-y-5">
           {capturedPhoto ? (
             <img
               src={capturedPhoto}
               alt="Captured Pokemon card"
-              className="mx-auto max-h-[60vh] w-full rounded-lg border border-gray-700 object-contain"
+              className="mx-auto max-h-[60vh] w-full rounded-lg border-2 border-pokedex-cream-dark object-contain shadow-lg"
             />
           ) : null}
-          <div className="text-center">
-            <p className="inline-flex items-center gap-2 rounded-md bg-gray-800 px-3 py-2 text-sm font-semibold text-gray-100">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-yellow-400" />
-              Identifying...
+          <div className="flex justify-center">
+            <p className="inline-flex min-w-[200px] items-center justify-center rounded-md bg-pokedex-lcd px-3 py-2 font-mono text-sm uppercase tracking-widest text-pokedex-lcd-dark shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)]">
+              IDENTIFYING{'.'.repeat(identifyDotCount)}
             </p>
           </div>
         </div>
@@ -266,13 +326,13 @@ export default function ScanView({ activeLanguage, onCollectionChanged }) {
               className="mx-auto max-h-[45vh] w-full rounded-lg border border-gray-700 object-contain"
             />
           ) : null}
-          <p className="rounded-lg border border-red-700 bg-red-950/60 p-3 text-sm text-red-200">
+          <p className="rounded-lg border border-pokedex-red-dark bg-pokedex-red-dark/20 p-3 text-sm text-pokedex-red-dark">
             {errorMessage}
           </p>
           <button
             type="button"
             onClick={triggerCapture}
-            className="w-full rounded-md bg-blue-500 px-4 py-3 font-semibold text-white hover:bg-blue-400"
+            className="w-full rounded-md bg-pokedex-red px-4 py-3 font-display tracking-wider text-pokedex-cream transition hover:bg-pokedex-red-light"
           >
             Try Again
           </button>
@@ -280,50 +340,80 @@ export default function ScanView({ activeLanguage, onCollectionChanged }) {
       ) : null}
 
       {scanState === SCAN_STATE.RESULTS && confirmData && !errorMessage ? (
-        <div className="space-y-4 pt-2 text-gray-900">
-          <div className="flex flex-col gap-3 rounded-lg border border-gray-200 bg-white p-3 sm:flex-row sm:items-start">
+        <div className="space-y-5 pt-1">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
             {capturedPhoto ? (
               <img
                 src={capturedPhoto}
                 alt="Captured Pokemon card"
-                className="w-full rounded-lg border border-gray-200 object-contain shadow-sm max-h-[180px] sm:max-h-[220px] sm:w-[260px] sm:flex-none"
+                className="w-full rounded-lg border-2 border-pokedex-cream-dark object-contain shadow-md max-h-[180px] sm:max-h-[220px] sm:w-[260px] sm:flex-none"
               />
             ) : null}
-            <div className="min-w-0 flex-1 self-center text-xs text-gray-600 sm:self-center">
+            <div className="min-w-0 flex-1 rounded-md border border-pokedex-cream-dark/70 bg-pokedex-cream p-3 font-mono text-xs text-pokedex-charcoal shadow-sm">
               <p className="truncate">
-                SET: {confirmData.scanData?.setHint || '—'} · NO:{' '}
-                {confirmData.scanData?.cardNumber || '—'} · NOTES:{' '}
+                <span className="text-pokedex-charcoal/60">SET:</span>{' '}
+                {confirmData.scanData?.setHint || '—'}
+              </p>
+              <p className="truncate">
+                <span className="text-pokedex-charcoal/60">NO:</span>{' '}
+                {confirmData.scanData?.cardNumber || '—'}
+              </p>
+              <p className="truncate" title={confirmData.scanData?.notes || '—'}>
+                <span className="text-pokedex-charcoal/60">NOTES:</span>{' '}
                 {confirmData.scanData?.notes || '—'}
               </p>
             </div>
           </div>
 
           {confirmData.candidates.length === 0 ? (
-            <p className="text-sm text-gray-500">Couldn&apos;t identify - search manually</p>
+            <p className="text-sm font-body text-pokedex-charcoal/60">
+              Couldn&apos;t identify - search manually
+            </p>
           ) : null}
 
           {confirmData.candidates.length ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3" role="radiogroup" aria-label="Top candidate matches">
               {confirmData.candidates.map((candidate) => {
                 const isSelected = selectedCandidate?.dexNum === candidate.dexNum
+                const confidenceIsHigh = candidate.confidence === 'high'
+                const confidenceIsMedium = candidate.confidence === 'medium'
                 return (
                   <button
                     key={`candidate-${candidate.dexNum}`}
                     type="button"
                     aria-pressed={isSelected}
                     onClick={() => setSelectedCandidate(candidate)}
-                    className={`relative rounded-xl border bg-white p-3 text-left shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 ${
+                    className={`relative min-h-[180px] rounded-xl border-2 p-4 text-left transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokedex-red ${
                       isSelected
-                        ? 'translate-y-[-2px] border-2 border-red-600 bg-red-50/40 shadow-md'
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'translate-y-[-4px] border-pokedex-red bg-gradient-to-b from-pokedex-cream to-white shadow-lg'
+                        : 'border-pokedex-cream-dark bg-pokedex-cream shadow-sm hover:border-pokedex-red-dark/40'
                     }`}
                   >
+                    <div className="absolute left-2 top-2 inline-flex items-center gap-1.5">
+                      <span
+                        className={`h-2.5 w-2.5 rounded-full ${
+                          confidenceIsHigh
+                            ? 'bg-pokedex-led shadow-[0_0_6px_rgba(74,222,128,0.8)]'
+                            : confidenceIsMedium
+                              ? 'bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.8)]'
+                              : 'bg-gray-400'
+                        }`}
+                        aria-hidden="true"
+                      />
+                      <span
+                        className={`font-mono text-[10px] uppercase tracking-wider ${
+                          confidenceIsHigh
+                            ? 'text-pokedex-lcd-dark/80'
+                            : confidenceIsMedium
+                              ? 'text-amber-700'
+                              : 'text-pokedex-charcoal/50'
+                        }`}
+                      >
+                        {confidenceIsHigh ? 'HIGH' : confidenceIsMedium ? 'MED' : 'LOW'}
+                      </span>
+                    </div>
                     <span
-                      className={`absolute left-2 top-2 h-2 w-2 rounded-full ring-2 ring-white ${confidenceDotClass(candidate.confidence)}`}
-                      aria-hidden="true"
-                    />
-                    <span
-                      className={`absolute right-2 top-2 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      className={`absolute right-2 top-2 rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
                         candidate.isOwned
                           ? 'bg-yellow-100 text-yellow-800'
                           : 'bg-blue-100 text-blue-800'
@@ -331,12 +421,12 @@ export default function ScanView({ activeLanguage, onCollectionChanged }) {
                     >
                       {candidate.isOwned ? 'OWNED' : 'NEW'}
                     </span>
-                    <div className="mt-3 flex justify-center">
+                    <div className="mt-7 flex justify-center">
                       <img
                         src={spriteUrlForDex(candidate.dexNum)}
                         alt={`${candidate.name} artwork`}
                         loading="lazy"
-                        className="h-[100px] w-[100px] object-contain"
+                        className="h-24 w-24 object-contain"
                         onError={(event) => {
                           event.currentTarget.style.display = 'none'
                           if (event.currentTarget.nextSibling) {
@@ -345,40 +435,65 @@ export default function ScanView({ activeLanguage, onCollectionChanged }) {
                         }}
                       />
                       <div
-                        className="hidden h-[100px] w-[100px] items-center justify-center rounded bg-gray-200 text-xs font-semibold text-gray-500"
+                        className="hidden h-24 w-24 items-center justify-center rounded bg-pokedex-cream-dark/70 font-mono text-xs text-pokedex-charcoal/60"
                         aria-hidden="true"
                       >
                         {formatDexNumber(candidate.dexNum)}
                       </div>
                     </div>
-                    <p className="mt-2 text-center font-mono text-xs text-gray-500">
+                    <p className="mt-2 text-center font-mono text-xs text-pokedex-charcoal/60">
                       {formatDexNumber(candidate.dexNum)}
                     </p>
-                    <p className="text-center text-base font-bold text-gray-900">{candidate.name}</p>
+                    <p className="text-center font-body text-base font-bold text-pokedex-charcoal">
+                      {candidate.name}
+                    </p>
+                    {isSelected ? (
+                      <span className="absolute bottom-2 right-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-pokedex-red text-xs text-pokedex-cream">
+                        ✓
+                      </span>
+                    ) : null}
                   </button>
                 )
               })}
             </div>
           ) : null}
 
-          <div className="rounded-lg border border-gray-200 bg-white">
+          <div className="rounded-md bg-pokedex-cream-dark/30 p-2 font-body text-sm text-pokedex-charcoal">
             <button
               type="button"
               onClick={() => setSearchExpanded((prev) => !prev)}
-              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm font-medium text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+              className="flex w-full items-center justify-between text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokedex-red"
             >
-              <span>{searchExpanded ? '▾' : '▸'} None of these? Search manually</span>
+              <span className="inline-flex items-center gap-2">
+                <span
+                  className={`inline-block transform text-xs transition-transform ${
+                    searchExpanded ? 'rotate-90' : ''
+                  }`}
+                  aria-hidden="true"
+                >
+                  ▸
+                </span>
+                None of these? Search manually
+              </span>
             </button>
             {searchExpanded ? (
-              <div className="space-y-2 border-t border-gray-200 p-3">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search name or dex number"
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/30"
-                />
-                <div className="max-h-56 space-y-2 overflow-y-auto pr-1">
+              <div className="space-y-2 border-t border-pokedex-cream-dark/60 pt-2">
+                <label className="relative block">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-pokedex-charcoal/50">
+                    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+                      <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+                      <path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="2" />
+                    </svg>
+                  </span>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Search name or dex number"
+                    className="w-full rounded-md border border-pokedex-cream-dark bg-white py-2 pl-9 pr-3 font-body text-sm text-pokedex-charcoal focus:border-pokedex-red focus:outline-none focus:ring-2 focus:ring-pokedex-red/20"
+                  />
+                </label>
+                <div className="max-h-60 space-y-2 overflow-y-auto pr-1">
                   {manualResults.map((entry) => (
                     <button
                       key={`manual-${entry.dexNum}`}
@@ -387,7 +502,7 @@ export default function ScanView({ activeLanguage, onCollectionChanged }) {
                         setSelectedCandidate(entry)
                         setSearchExpanded(false)
                       }}
-                      className="flex w-full items-center gap-2 rounded-md border border-gray-200 bg-white px-2 py-2 text-left hover:border-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                      className="flex w-full items-center gap-2 rounded-md border border-pokedex-cream-dark/70 bg-pokedex-cream px-2 py-2 text-left transition hover:border-pokedex-red-dark/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokedex-red"
                     >
                       <img
                         src={spriteUrlForDex(entry.dexNum)}
@@ -402,19 +517,19 @@ export default function ScanView({ activeLanguage, onCollectionChanged }) {
                         }}
                       />
                       <div
-                        className="hidden h-10 w-10 items-center justify-center rounded bg-gray-200 text-[10px] font-semibold text-gray-500"
+                        className="hidden h-10 w-10 items-center justify-center rounded bg-pokedex-cream-dark/70 font-mono text-[10px] text-pokedex-charcoal/60"
                         aria-hidden="true"
                       >
                         {entry.dexNum}
                       </div>
                       <p className="min-w-0 flex-1 truncate text-sm">
-                        <span className="mr-2 font-mono text-xs text-gray-500">
+                        <span className="mr-2 font-mono text-xs text-pokedex-charcoal/60">
                           {formatDexNumber(entry.dexNum)}
                         </span>
-                        <span className="font-semibold text-gray-900">{entry.name}</span>
+                        <span className="font-body font-semibold text-pokedex-charcoal">{entry.name}</span>
                       </p>
                       <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider ${
                           entry.isOwned
                             ? 'bg-yellow-100 text-yellow-800'
                             : 'bg-blue-100 text-blue-800'
@@ -425,7 +540,7 @@ export default function ScanView({ activeLanguage, onCollectionChanged }) {
                     </button>
                   ))}
                   {normalizedQuery && !manualResults.length ? (
-                    <p className="text-sm text-gray-500">No Pokemon matched that search.</p>
+                    <p className="text-sm text-pokedex-charcoal/60">No Pokemon matched that search.</p>
                   ) : null}
                 </div>
               </div>
@@ -433,33 +548,35 @@ export default function ScanView({ activeLanguage, onCollectionChanged }) {
           </div>
 
           {saveError ? (
-            <p className="rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+            <p className="rounded-lg border border-pokedex-red-dark bg-pokedex-red-dark/10 p-2 text-sm text-pokedex-red-dark">
               {saveError}
             </p>
           ) : null}
 
-          <div className="sticky bottom-0 border-t border-gray-200 bg-white/95 px-3 py-3 backdrop-blur">
+          <div className="sticky bottom-0 border-t border-pokedex-red bg-gradient-to-b from-pokedex-charcoal to-pokedex-charcoal/95 px-5 py-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="truncate text-sm text-gray-800">
-                  <span className="font-semibold">Selected:</span>{' '}
+              <div className="min-w-0 rounded-md bg-pokedex-lcd px-3 py-2 font-mono text-pokedex-lcd-dark shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)]">
+                <p className="truncate text-xs uppercase tracking-widest text-pokedex-lcd-dark/70">
+                  {selectedCandidate ? 'SELECTED' : 'NO SELECTION'}
+                </p>
+                <p className="truncate text-sm font-bold uppercase">
                   {selectedCandidate
                     ? `${formatDexNumber(selectedCandidate.dexNum)} ${selectedCandidate.name}`
-                    : 'none'}
+                    : '—'}
                 </p>
-                <p className="text-xs text-gray-600">
+                <p className="truncate text-xs text-pokedex-lcd-dark/80">
                   {selectedCandidate
                     ? selectedCandidate.isOwned
-                      ? '-> already owned, will swap'
+                      ? '-> already owned • will swap in'
                       : `-> new to ${activeLanguage.toUpperCase()} collection`
-                    : '-> nothing selected'}
+                    : '—'}
                 </p>
               </div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={resetToIdle}
-                  className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400"
+                  className="rounded-md border border-pokedex-cream bg-transparent px-5 py-2.5 font-display text-sm uppercase tracking-wider text-pokedex-cream transition hover:bg-pokedex-cream/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokedex-cream/60"
                 >
                   CANCEL
                 </button>
@@ -467,7 +584,7 @@ export default function ScanView({ activeLanguage, onCollectionChanged }) {
                   type="button"
                   onClick={handleConfirm}
                   disabled={!selectedCandidate || isSaving}
-                  className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:cursor-not-allowed disabled:bg-red-300"
+                  className="rounded-md bg-pokedex-red px-5 py-2.5 font-display text-sm uppercase tracking-wider text-pokedex-cream transition hover:bg-pokedex-red-light focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokedex-red disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {isSaving ? 'SAVING...' : 'CONFIRM'}
                 </button>
