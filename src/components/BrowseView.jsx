@@ -3,17 +3,13 @@ import { LANGUAGES } from '../lib/db'
 import {
   deleteSlot,
   getAllPokedex,
-  getMeta,
   getSlots,
-  seedIfEmpty,
-  setMeta,
   upsertSlot,
 } from '../lib/collection'
 import LanguageToggle from './LanguageToggle'
 import FilterBar from './FilterBar'
 import PokedexRow from './PokedexRow'
 
-const ACTIVE_LANGUAGE_META_KEY = 'activeLanguage'
 const FILTERS = {
   ALL: 'all',
   OWNED: 'owned',
@@ -24,11 +20,13 @@ function isLanguageSupported(language) {
   return language === LANGUAGES.JAPANESE || language === LANGUAGES.ENGLISH
 }
 
-export default function BrowseView() {
+export default function BrowseView({
+  activeLanguage,
+  onLanguageChange,
+  refreshToken = 0,
+}) {
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState('')
-  const [activeLanguage, setActiveLanguage] = useState(LANGUAGES.JAPANESE)
-  const [isLanguageReady, setIsLanguageReady] = useState(false)
   const [allEntries, setAllEntries] = useState([])
   const [ownedDexNums, setOwnedDexNums] = useState(new Set())
   const [searchTerm, setSearchTerm] = useState('')
@@ -42,22 +40,12 @@ export default function BrowseView() {
       setErrorMessage('')
 
       try {
-        await seedIfEmpty()
-        const storedLanguage = await getMeta(
-          ACTIVE_LANGUAGE_META_KEY,
-          LANGUAGES.JAPANESE,
-        )
-        const normalizedLanguage = isLanguageSupported(storedLanguage)
-          ? storedLanguage
-          : LANGUAGES.JAPANESE
         const entries = await getAllPokedex()
 
         if (!isMounted) {
           return
         }
 
-        setActiveLanguage(normalizedLanguage)
-        setIsLanguageReady(true)
         setAllEntries(entries)
       } catch (error) {
         if (!isMounted) {
@@ -76,7 +64,7 @@ export default function BrowseView() {
   }, [])
 
   useEffect(() => {
-    if (!isLanguageReady) {
+    if (!isLanguageSupported(activeLanguage)) {
       return
     }
 
@@ -84,7 +72,6 @@ export default function BrowseView() {
 
     async function loadLanguageSlots() {
       try {
-        await setMeta(ACTIVE_LANGUAGE_META_KEY, activeLanguage)
         const slots = await getSlots(activeLanguage)
         if (!isMounted) {
           return
@@ -108,7 +95,7 @@ export default function BrowseView() {
     return () => {
       isMounted = false
     }
-  }, [activeLanguage, isLanguageReady])
+  }, [activeLanguage, refreshToken])
 
   const filteredEntries = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
@@ -177,7 +164,7 @@ export default function BrowseView() {
     <section className="space-y-4">
       <LanguageToggle
         activeLanguage={activeLanguage}
-        onChange={setActiveLanguage}
+        onChange={onLanguageChange}
       />
 
       <div className="rounded-lg bg-white p-3 shadow-sm">
