@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import AppHeader from './components/AppHeader'
 import BrowseView from './components/BrowseView'
 import InstallPrompt from './components/InstallPrompt'
 import ScanView from './components/ScanView'
@@ -242,11 +243,7 @@ function App() {
   if (isInitializing) {
     return (
       <main className="min-h-screen bg-red-50">
-        <header className="bg-red-700 px-4 py-4 text-white shadow-sm">
-          <div className="mx-auto max-w-[720px]">
-            <h1 className="text-xl font-bold tracking-wide">Pokedex Tracker</h1>
-          </div>
-        </header>
+        <AppHeader onOpenSettings={() => setSettingsOpen(true)} />
         <div className="mx-auto max-w-[720px] px-4 py-4 text-gray-600">
           Loading app...
         </div>
@@ -257,11 +254,7 @@ function App() {
   if (errorMessage) {
     return (
       <main className="min-h-screen bg-red-50">
-        <header className="bg-red-700 px-4 py-4 text-white shadow-sm">
-          <div className="mx-auto max-w-[720px]">
-            <h1 className="text-xl font-bold tracking-wide">Pokedex Tracker</h1>
-          </div>
-        </header>
+        <AppHeader onOpenSettings={() => setSettingsOpen(true)} />
         <div className="mx-auto max-w-[720px] px-4 py-4">
           <section className="rounded-lg bg-white p-4 shadow-sm">
             <p className="font-semibold text-red-700">Failed to load app.</p>
@@ -274,19 +267,7 @@ function App() {
 
   return (
     <main className="min-h-screen bg-red-50">
-      <header className="bg-red-700 px-4 py-4 text-white shadow-sm">
-        <div className="mx-auto flex max-w-[720px] items-center justify-between">
-          <h1 className="text-xl font-bold tracking-wide">Pokedex Tracker</h1>
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            className="rounded-md border border-white/40 px-2.5 py-1 text-lg leading-none hover:bg-red-600"
-            aria-label="Open settings"
-          >
-            ⚙️
-          </button>
-        </div>
-      </header>
+      <AppHeader onOpenSettings={() => setSettingsOpen(true)} />
 
       <div className="mx-auto max-w-[720px] px-4 py-4 pb-24">
         <div className="mb-4 flex overflow-hidden rounded-lg border border-red-700 bg-white">
