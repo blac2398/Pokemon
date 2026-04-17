@@ -1,11 +1,10 @@
-import { db, buildSlotId, LANGUAGES } from './db'
+import { db, buildSlotId } from './db'
 import pokedexData from '../data/pokedex.json'
-import initialOwnedJpDexNumbers from '../data/initial_owned_jp.json'
 
 const SEEDED_META_KEY = 'seeded'
 
 /**
- * Seeds reference data and first-run JP owned slots only when needed.
+ * Seeds reference data only when needed.
  */
 export async function seedIfEmpty() {
   const pokedexCount = await db.pokedex.count()
@@ -18,19 +17,6 @@ export async function seedIfEmpty() {
     return
   }
 
-  const now = new Date().toISOString()
-  const initialSlots = initialOwnedJpDexNumbers.map((dexNum) => ({
-    id: buildSlotId(LANGUAGES.JAPANESE, dexNum),
-    lang: LANGUAGES.JAPANESE,
-    dexNum,
-    setHint: '',
-    cardNumber: '',
-    notes: '',
-    thumbnail: null,
-    addedAt: now,
-  }))
-
-  await db.slots.bulkPut(initialSlots)
   await db.meta.put({ key: SEEDED_META_KEY, value: true })
 }
 
@@ -84,6 +70,13 @@ export async function deleteSlot(lang, dexNum) {
  */
 export async function getOwnedCount(lang) {
   return db.slots.where('lang').equals(lang).count()
+}
+
+/**
+ * Clears every owned slot in both languages.
+ */
+export async function clearCollection() {
+  await db.slots.clear()
 }
 
 /**

@@ -1,11 +1,19 @@
 import { useEffect, useState } from 'react'
 import BrowseView from './components/BrowseView'
+import InstallPrompt from './components/InstallPrompt'
 import ScanView from './components/ScanView'
 import { LANGUAGES } from './lib/db'
-import { getMeta, seedIfEmpty, setMeta } from './lib/collection'
+import {
+  clearCollection,
+  getMeta,
+  getOwnedCount,
+  seedIfEmpty,
+  setMeta,
+} from './lib/collection'
 
 const ACTIVE_LANGUAGE_META_KEY = 'activeLanguage'
 const ACTIVE_VIEW_META_KEY = 'activeView'
+const APP_VERSION = '0.1.0'
 
 const VIEWS = {
   BROWSE: 'browse',
@@ -16,12 +24,158 @@ function isLanguageSupported(language) {
   return language === LANGUAGES.JAPANESE || language === LANGUAGES.ENGLISH
 }
 
+function SettingsModal({ isOpen, onClose, refreshToken, onCollectionCleared }) {
+  const [counts, setCounts] = useState({ jp: 0, en: 0 })
+  const [isLoading, setIsLoading] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
+  const [pendingClear, setPendingClear] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+
+  useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
+    let isMounted = true
+    async function loadCounts() {
+      setIsLoading(true)
+      setErrorMessage('')
+      try {
+        const [jp, en] = await Promise.all([
+          getOwnedCount(LANGUAGES.JAPANESE),
+          getOwnedCount(LANGUAGES.ENGLISH),
+        ])
+        if (!isMounted) {
+          return
+        }
+        setCounts({ jp, en })
+      } catch (error) {
+        if (!isMounted) {
+          return
+        }
+        setErrorMessage(error instanceof Error ? error.message : String(error))
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadCounts()
+    return () => {
+      isMounted = false
+    }
+  }, [isOpen, refreshToken])
+
+  async function handleClearCollection() {
+    if (isClearing) {
+      return
+    }
+    setIsClearing(true)
+    setErrorMessage('')
+    try {
+      await clearCollection()
+      setCounts({ jp: 0, en: 0 })
+      setPendingClear(false)
+      onCollectionCleared?.()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : String(error))
+    } finally {
+      setIsClearing(false)
+    }
+  }
+
+  if (!isOpen) {
+    return null
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) {
+          onClose()
+        }
+      }}
+    >
+      <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
+        <div className="flex items-start justify-between gap-4">
+          <h2 className="text-lg font-bold text-gray-900">Settings</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-md px-2 py-1 text-gray-500 hover:bg-gray-100"
+            aria-label="Close settings"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="mt-4 space-y-2 text-sm text-gray-700">
+          <p className="font-semibold">Pokedex Tracker - v{APP_VERSION}</p>
+          {isLoading ? (
+            <p>Loading your collection...</p>
+          ) : (
+            <p>
+              JP: {counts.jp} / 1025 owned | EN: {counts.en} / 1025 owned
+            </p>
+          )}
+        </div>
+
+        <div className="mt-5 border-t border-red-100 pt-4">
+          {!pendingClear ? (
+            <button
+              type="button"
+              onClick={() => setPendingClear(true)}
+              className="w-full rounded-md border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+            >
+              Clear collection
+            </button>
+          ) : (
+            <div className="space-y-3 rounded-lg border border-red-200 bg-red-50 p-3">
+              <p className="text-sm text-red-800">
+                Clear all JP and EN slots? This removes owned state, notes, and
+                thumbnails for your whole collection.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handleClearCollection}
+                  disabled={isClearing}
+                  className="rounded-md bg-red-700 px-3 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Yes, clear all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPendingClear(false)}
+                  disabled={isClearing}
+                  className="rounded-md border border-red-300 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {errorMessage ? (
+          <p className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {errorMessage}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
 function App() {
   const [isInitializing, setIsInitializing] = useState(true)
   const [activeLanguage, setActiveLanguage] = useState(LANGUAGES.JAPANESE)
   const [activeView, setActiveView] = useState(VIEWS.BROWSE)
   const [refreshToken, setRefreshToken] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => {
     let isMounted = true
@@ -121,12 +275,20 @@ function App() {
   return (
     <main className="min-h-screen bg-red-50">
       <header className="bg-red-700 px-4 py-4 text-white shadow-sm">
-        <div className="mx-auto max-w-[720px]">
+        <div className="mx-auto flex max-w-[720px] items-center justify-between">
           <h1 className="text-xl font-bold tracking-wide">Pokedex Tracker</h1>
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className="rounded-md border border-white/40 px-2.5 py-1 text-lg leading-none hover:bg-red-600"
+            aria-label="Open settings"
+          >
+            ⚙️
+          </button>
         </div>
       </header>
 
-      <div className="mx-auto max-w-[720px] px-4 py-4">
+      <div className="mx-auto max-w-[720px] px-4 py-4 pb-24">
         <div className="mb-4 flex overflow-hidden rounded-lg border border-red-700 bg-white">
           <button
             type="button"
@@ -165,6 +327,13 @@ function App() {
           />
         )}
       </div>
+      <InstallPrompt />
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        refreshToken={refreshToken}
+        onCollectionCleared={refreshCollection}
+      />
     </main>
   )
 }
