@@ -1,4 +1,4 @@
-export async function resizeImage(file, maxDim = 1024) {
+export async function resizeImage(file, maxDim = 1024, quality = 0.85) {
   const dataUrl = await readFileAsDataUrl(file)
   const image = await loadImage(dataUrl)
   const { width, height } = getScaledDimensions(
@@ -17,8 +17,14 @@ export async function resizeImage(file, maxDim = 1024) {
   }
 
   context.drawImage(image, 0, 0, width, height)
-  const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.85)
+  const resizedDataUrl = canvas.toDataURL('image/jpeg', quality)
   return { dataUrl: resizedDataUrl, mediaType: 'image/jpeg' }
+}
+
+// Resize an image for local on-device storage.
+// Smaller than API uploads because these are stored in IndexedDB, not transmitted.
+export async function resizeImageForStorage(file, maxDim = 400, quality = 0.8) {
+  return resizeImage(file, maxDim, quality)
 }
 
 function getScaledDimensions(width, height, maxDim) {

@@ -3,12 +3,14 @@ import { LANGUAGES } from '../lib/db'
 import {
   deleteSlot,
   getAllPokedex,
+  getSlot,
   getSlots,
   upsertSlot,
 } from '../lib/collection'
 import LanguageToggle from './LanguageToggle'
 import FilterBar from './FilterBar'
 import PokedexRow from './PokedexRow'
+import SlotDetailView from './SlotDetailView'
 
 const FILTERS = {
   ALL: 'all',
@@ -31,6 +33,9 @@ export default function BrowseView({
   const [ownedDexNums, setOwnedDexNums] = useState(new Set())
   const [searchTerm, setSearchTerm] = useState('')
   const [activeFilter, setActiveFilter] = useState(FILTERS.ALL)
+  const [detailViewOpen, setDetailViewOpen] = useState(false)
+  const [detailSlot, setDetailSlot] = useState(null)
+  const [detailPokedex, setDetailPokedex] = useState(null)
 
   useEffect(() => {
     let isMounted = true
@@ -97,6 +102,11 @@ export default function BrowseView({
     }
   }, [activeLanguage, refreshToken])
 
+  async function refreshOwnedSet() {
+    const slots = await getSlots(activeLanguage)
+    setOwnedDexNums(new Set(slots.map((slot) => slot.dexNum)))
+  }
+
   const filteredEntries = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase()
 
@@ -143,6 +153,38 @@ export default function BrowseView({
     }
   }
 
+  async function handleOpenDetail(entry) {
+    setDetailPokedex({ n: entry.n, name: entry.name })
+    setDetailSlot(null)
+    setDetailViewOpen(true)
+    try {
+      const slot = await getSlot(activeLanguage, entry.n)
+      setDetailSlot(slot ?? null)
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : String(error))
+      setDetailViewOpen(false)
+    }
+  }
+
+  async function handleDetailChange() {
+    try {
+      await refreshOwnedSet()
+      if (detailPokedex) {
+        const slot = await getSlot(activeLanguage, detailPokedex.n)
+        setDetailSlot(slot ?? null)
+      }
+      setErrorMessage('')
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : String(error))
+    }
+  }
+
+  function handleCloseDetail() {
+    setDetailViewOpen(false)
+    setDetailSlot(null)
+    setDetailPokedex(null)
+  }
+
   if (errorMessage) {
     return (
       <section className="rounded-lg bg-white p-4 shadow-sm">
@@ -187,9 +229,20 @@ export default function BrowseView({
             entry={entry}
             isOwned={ownedDexNums.has(entry.n)}
             onToggle={() => handleToggleOwnership(entry.n)}
+            onOpenDetail={handleOpenDetail}
           />
         ))}
       </div>
+
+      {detailViewOpen && detailPokedex ? (
+        <SlotDetailView
+          slot={detailSlot}
+          pokedexEntry={detailPokedex}
+          lang={activeLanguage}
+          onClose={handleCloseDetail}
+          onChange={handleDetailChange}
+        />
+      ) : null}
     </section>
   )
 }

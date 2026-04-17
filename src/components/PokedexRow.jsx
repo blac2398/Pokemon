@@ -8,14 +8,24 @@ function spriteUrl(dexNum) {
   return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${dexNum}.png`
 }
 
-export default function PokedexRow({ entry, isOwned, onToggle }) {
+export default function PokedexRow({ entry, isOwned, onToggle, onOpenDetail }) {
   const [imageFailed, setImageFailed] = useState(false)
   const dexLabel = formatDexNumber(entry.n)
+  const chevron = isOwned ? '›' : ''
+
+  function handleClick() {
+    if (isOwned) {
+      onOpenDetail?.(entry)
+      return
+    }
+
+    onToggle?.()
+  }
 
   return (
     <button
       type="button"
-      onClick={onToggle}
+      onClick={handleClick}
       className={`flex w-full items-center gap-3 border-b border-gray-200 px-3 py-2 text-left transition-colors ${
         isOwned ? 'bg-yellow-50 hover:bg-yellow-100' : 'bg-white hover:bg-gray-50'
       }`}
@@ -41,8 +51,9 @@ export default function PokedexRow({ entry, isOwned, onToggle }) {
         <p className="truncate text-base text-gray-900">{entry.name}</p>
       </div>
 
-      <div className="w-8 shrink-0 text-center text-xl text-yellow-500">
-        {isOwned ? '✓' : ''}
+      <div className="flex w-10 shrink-0 items-center justify-end gap-1 text-xl text-yellow-500">
+        <span>{isOwned ? '✓' : ''}</span>
+        <span className="text-gray-400">{chevron}</span>
       </div>
     </button>
   )
