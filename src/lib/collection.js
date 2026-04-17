@@ -85,3 +85,18 @@ export async function deleteSlot(lang, dexNum) {
 export async function getOwnedCount(lang) {
   return db.slots.where('lang').equals(lang).count()
 }
+
+/**
+ * Reads a meta value and falls back when missing.
+ */
+export async function getMeta(key, defaultValue = null) {
+  const entry = await db.meta.get(key)
+  return entry ? entry.value : defaultValue
+}
+
+/**
+ * Writes one meta value by key.
+ */
+export async function setMeta(key, value) {
+  await db.meta.put({ key, value })
+}
