@@ -4,6 +4,8 @@ import BrowseView from './components/BrowseView'
 import InstallPrompt from './components/InstallPrompt'
 import ScanView from './components/ScanView'
 import SettingsDrawer from './components/SettingsDrawer'
+import SignInScreen from './components/SignInScreen'
+import { supabase } from './lib/supabase'
 import { LANGUAGES } from './lib/db'
 import { getMeta, seedIfEmpty, setMeta } from './lib/collection'
 
@@ -20,7 +22,9 @@ function isLanguageSupported(language) {
 }
 
 function App() {
-  const [isInitializing, setIsInitializing] = useState(true)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [session, setSession] = useState(null)
+  const [isInitializing, setIsInitializing] = useState(false)
   const [activeLanguage, setActiveLanguage] = useState(LANGUAGES.JAPANESE)
   const [activeView, setActiveView] = useState(VIEWS.BROWSE)
   const [refreshToken, setRefreshToken] = useState(0)
@@ -28,6 +32,69 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   useEffect(() => {
+    let mounted = true
+    console.log('[auth] effect running')
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
+      console.log(
+        '[auth] state change event:',
+        event,
+        'has session:',
+        !!newSession,
+      )
+      if (!mounted) {
+        return
+      }
+      setSession(() => newSession)
+      if (newSession && window.location.hash.includes('access_token')) {
+        window.history.replaceState(null, '', window.location.pathname)
+      }
+    })
+
+    supabase.auth
+      .getSession()
+      .then(({ data: { session: initialSession }, error }) => {
+        console.log(
+          '[auth] initial session:',
+          initialSession ? 'has session' : 'null',
+        )
+        if (!mounted) {
+          return
+        }
+        if (error) {
+          setErrorMessage(error.message)
+          setAuthLoading(false)
+          return
+        }
+        setSession(initialSession)
+        setAuthLoading(false)
+        if (initialSession?.user) {
+          setIsInitializing(true)
+        }
+      })
+      .catch((error) => {
+        if (!mounted) {
+          return
+        }
+        setErrorMessage(
+          error instanceof Error ? error.message : String(error),
+        )
+        setAuthLoading(false)
+      })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (authLoading || !session?.user?.id) {
+      return
+    }
+
     let isMounted = true
 
     async function initializeApp() {
@@ -65,31 +132,53 @@ function App() {
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [authLoading, session?.user?.id])
 
   useEffect(() => {
-    if (isInitializing) {
+    if (!session || isInitializing) {
       return
     }
     setMeta(ACTIVE_LANGUAGE_META_KEY, activeLanguage).catch((error) => {
       console.error('Failed to persist active language', error)
     })
-  }, [activeLanguage, isInitializing])
+  }, [activeLanguage, isInitializing, session])
 
   useEffect(() => {
-    if (isInitializing) {
+    if (!session || isInitializing) {
       return
     }
     setMeta(ACTIVE_VIEW_META_KEY, activeView).catch((error) => {
       console.error('Failed to persist active view', error)
     })
-  }, [activeView, isInitializing])
+  }, [activeView, isInitializing, session])
 
   function refreshCollection() {
     setRefreshToken((current) => current + 1)
   }
 
+  if (authLoading) {
+    console.log('[render] loading')
+    return (
+      <main className="min-h-screen bg-red-50">
+        <div className="mx-auto max-w-[720px] px-4 py-4 text-gray-600">
+          Loading…
+        </div>
+      </main>
+    )
+  }
+
+  if (!session) {
+    console.log('[render] signin')
+    return (
+      <>
+        <SignInScreen />
+        <InstallPrompt />
+      </>
+    )
+  }
+
   if (isInitializing) {
+    console.log('[render] loading')
     return (
       <main className="min-h-screen bg-red-50">
         <AppHeader onOpenSettings={() => setSettingsOpen(true)} />
@@ -101,6 +190,7 @@ function App() {
   }
 
   if (errorMessage) {
+    console.log('[render] error')
     return (
       <main className="min-h-screen bg-red-50">
         <AppHeader onOpenSettings={() => setSettingsOpen(true)} />
@@ -114,6 +204,7 @@ function App() {
     )
   }
 
+  console.log('[render] app')
   return (
     <main className="min-h-screen bg-red-50">
       <AppHeader onOpenSettings={() => setSettingsOpen(true)} />
@@ -165,6 +256,7 @@ function App() {
         onClose={() => setSettingsOpen(false)}
         refreshToken={refreshToken}
         onCollectionCleared={refreshCollection}
+        session={session}
       />
     </main>
   )

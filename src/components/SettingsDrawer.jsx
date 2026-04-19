@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { signOut } from '../lib/auth'
 import { LANGUAGES } from '../lib/db'
 import { clearCollection, getOwnedCount } from '../lib/collection'
 
@@ -40,9 +41,11 @@ export default function SettingsDrawer({
   onClose,
   refreshToken,
   onCollectionCleared,
+  session,
 }) {
   const [counts, setCounts] = useState({ jp: 0, en: 0 })
   const [isLoading, setIsLoading] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const [isClearing, setIsClearing] = useState(false)
   const [pendingClear, setPendingClear] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -115,6 +118,22 @@ export default function SettingsDrawer({
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [rendered, onClose])
+
+  async function handleSignOut() {
+    if (isSigningOut) {
+      return
+    }
+    setIsSigningOut(true)
+    setErrorMessage('')
+    try {
+      await signOut()
+      onClose?.()
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : String(error))
+    } finally {
+      setIsSigningOut(false)
+    }
+  }
 
   async function handleClearCollection() {
     if (isClearing) {
@@ -225,6 +244,32 @@ export default function SettingsDrawer({
                 owned={enOwned}
                 pct={isLoading ? 0 : enPct}
               />
+            </div>
+          </section>
+
+          <section className="border-b border-pokedex-cream-dark/50 bg-pokedex-cream-dark/15 p-5">
+            <h3 className="mb-3 font-display text-xs uppercase tracking-[0.15em] text-pokedex-charcoal/60">
+              ACCOUNT
+            </h3>
+            <div className="flex items-start justify-between gap-3 rounded-lg border border-pokedex-cream-dark/40 bg-white p-4 shadow-sm">
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-body text-sm text-pokedex-charcoal">
+                  {session?.user?.email ?? '—'}
+                </p>
+                {session?.user?.user_metadata?.full_name ? (
+                  <p className="mt-1 font-body text-xs text-pokedex-charcoal/60">
+                    {session.user.user_metadata.full_name}
+                  </p>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+                className="shrink-0 rounded-full border border-pokedex-charcoal/30 bg-white px-4 py-2 font-display text-xs uppercase tracking-wider text-pokedex-charcoal transition-colors hover:bg-pokedex-cream-dark/20 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pokedex-charcoal/30"
+              >
+                {isSigningOut ? 'Signing out…' : 'Sign Out'}
+              </button>
             </div>
           </section>
 
