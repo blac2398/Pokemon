@@ -1,7 +1,20 @@
 import { db, buildSlotId } from './db'
 import pokedexData from '../data/pokedex.json'
+import { supabase } from './supabase'
+import { pushSlotToCloud, deleteSlotFromCloud } from './sync'
 
 const SEEDED_META_KEY = 'seeded'
+
+/**
+ * Reads the current signed-in user id from Supabase auth state.
+ * Returns null when signed out or when no session is available.
+ */
+async function getCurrentUserId() {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  return session?.user?.id ?? null
+}
 
 /**
  * Seeds reference data only when needed.
@@ -56,6 +69,13 @@ export async function upsertSlot(slotData) {
   }
 
   await db.slots.put(slot)
+
+  // Fire cloud sync in the background so local UI stays instant.
+  getCurrentUserId().then((userId) => {
+    if (userId) {
+      pushSlotToCloud(slot, userId)
+    }
+  })
 }
 
 /**
@@ -63,6 +83,13 @@ export async function upsertSlot(slotData) {
  */
 export async function deleteSlot(lang, dexNum) {
   await db.slots.delete(buildSlotId(lang, dexNum))
+
+  // Fire cloud sync in the background so local UI stays instant.
+  getCurrentUserId().then((userId) => {
+    if (userId) {
+      deleteSlotFromCloud(lang, dexNum, userId)
+    }
+  })
 }
 
 /**
