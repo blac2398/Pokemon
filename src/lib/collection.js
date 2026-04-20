@@ -65,6 +65,7 @@ export async function upsertSlot(slotData) {
     notes: '',
     thumbnail: null,
     addedAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
     ...slotData,
   }
 

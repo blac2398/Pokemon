@@ -8,6 +8,7 @@ import SignInScreen from './components/SignInScreen'
 import { supabase } from './lib/supabase'
 import { LANGUAGES } from './lib/db'
 import { getMeta, seedIfEmpty, setMeta } from './lib/collection'
+import { pullSlotsFromCloud } from './lib/sync'
 
 const ACTIVE_LANGUAGE_META_KEY = 'activeLanguage'
 const ACTIVE_VIEW_META_KEY = 'activeView'
@@ -100,6 +101,11 @@ function App() {
     async function initializeApp() {
       try {
         await seedIfEmpty()
+        const userId = session?.user?.id
+        if (userId) {
+          const stats = await pullSlotsFromCloud(userId)
+          console.log('[sync] initial pull complete', stats)
+        }
         const storedLanguage = await getMeta(
           ACTIVE_LANGUAGE_META_KEY,
           LANGUAGES.JAPANESE,
