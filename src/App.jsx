@@ -8,7 +8,7 @@ import SignInScreen from './components/SignInScreen'
 import { supabase } from './lib/supabase'
 import { LANGUAGES } from './lib/db'
 import { getMeta, seedIfEmpty, setMeta } from './lib/collection'
-import { pullSlotsFromCloud } from './lib/sync'
+import { pullSlotsFromCloud, pullSlotsIncremental } from './lib/sync'
 
 const ACTIVE_LANGUAGE_META_KEY = 'activeLanguage'
 const ACTIVE_VIEW_META_KEY = 'activeView'
@@ -157,6 +157,41 @@ function App() {
       console.error('Failed to persist active view', error)
     })
   }, [activeView, isInitializing, session])
+
+  useEffect(() => {
+    if (isInitializing || !session?.user?.id) {
+      return
+    }
+
+    const userId = session.user.id
+
+    async function doPull() {
+      if (document.visibilityState !== 'visible') {
+        return
+      }
+
+      const stats = await pullSlotsIncremental(userId)
+      if (stats.pulled > 0) {
+        console.log('[sync] incremental pull applied', stats)
+        refreshCollection()
+      }
+    }
+
+    const intervalId = setInterval(doPull, 5 * 60 * 1000)
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        doPull()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      clearInterval(intervalId)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [isInitializing, session?.user?.id])
 
   function refreshCollection() {
     setRefreshToken((current) => current + 1)
